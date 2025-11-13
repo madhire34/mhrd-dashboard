@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  {% if state %}
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/states">States</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ state }}</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div>
+        <h2 class="mb-1">{{ state }}</h2>
+        <p class="text-muted mb-0">Programs and impact</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/states/{{ state|slugify }}/print" class="btn btn-outline-secondary" target="_blank">Print</a>
+        <a href="/states/{{ state|slugify }}/pdf" class="btn btn-outline-secondary" target="_blank">Download PDF</a>
+        <a href="/states" class="btn btn-outline-primary">Back to states</a>
+      </div>
+    </div>
+
+    <section class="filters mt-3">
+      <form id="filters-form-state" class="filters__form">
+        <div class="filters__group">
+          <label for="filter-year">Year</label>
+          <select id="filter-year" name="year">
+            <option value="">All</option>
+            {% for choice in filters.years %}
+              <option value="{{ choice }}" {% if payload.filters.year|default:'' == choice|stringformat:"s" %}selected{% endif %}>{{ choice }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filters__group">
+          <label for="filter-scheme">Scheme</label>
+          <select id="filter-scheme" name="scheme">
+            <option value="">All</option>
+            {% for choice in filters.schemes %}
+              <option value="{{ choice }}" {% if payload.filters.scheme == choice %}selected{% endif %}>{{ choice }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filters__group">
+          <label for="filter-category">Category</label>
+          <select id="filter-category" name="category">
+            <option value="">All</option>
+            {% for choice in filters.categories %}
+              <option value="{{ choice }}" {% if payload.filters.category == choice %}selected{% endif %}>{{ choice }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+    </section>
+
+    <div class="kpi-grid mt-3">
+      <div class="card"><p class="card__label">Total Schools</p><p class="card__value" id="kpi-schools">{{ payload.summary.schools|default:0 }}</p></div>
+      <div class="card"><p class="card__label">Total Students</p><p class="card__value" id="kpi-students">{{ payload.summary.students|default:0 }}</p></div>
+      <div class="card"><p class="card__label">Scholarships</p><p class="card__value" id="kpi-scholarships">{{ payload.summary.scholarships|default:0 }}</p></div>
+      <div class="card"><p class="card__label">Avg Progress</p><p class="card__value" id="kpi-progress">{{ payload.summary.avg_progress_pct|default:0 }}%</p></div>
+    </div>
+
+    <div class="card card--map mt-2">
+      <div class="card__heading"><h4>Impact Map</h4></div>
+      <div id="detail-map"></div>
+    </div>
+
+    <div class="card card--table">
+      <div class="card__heading"><h4>Initiatives</h4></div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Scheme</th><th>Category</th><th>Year</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for i in payload.initiatives %}
+            <tr>
+              <td>{{ i.name }}</td>
+              <td>{{ i.scheme }}</td>
+              <td>{{ i.category }}</td>
+              <td>{{ i.year }}</td>
+              <td><span class="status status--{{ i.status|lower|slugify }}">{{ i.status }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty">No data.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{ payload|json_script:"detail-data" }}
+  {% else %}
+    <h2>State not found</h2>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const numberFormatter = new Intl.NumberFormat('en-IN');
+    const dataScript = document.getElementById('detail-data');
+    const data = dataScript ? JSON.parse(dataScript.textContent || '{}') : {};
+    const mapEl = document.getElementById('detail-map');
+    if (!mapEl) { console.warn('detail-map container not found; skipping map init'); return; }
+    const map = L.map(mapEl, { center: [21.1458, 79.0882], zoom: 5, scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    const layer = L.layerGroup().addTo(map);
+    setTimeout(function(){ map.invalidateSize(); }, 0);
+
+    function renderMap(points){
+      layer.clearLayers();
+      const bounds = [];
+      points.forEach(p => {
+        const marker = L.circleMarker([p.lat, p.lng], { radius: 14, fillColor: '#3b82f6', color: '#1d4ed8', fillOpacity: 0.75, weight: 2 });
+        marker.bindPopup(`<strong>${p.state}</strong><br>Schools: ${numberFormatter.format(p.schools)}<br>Students: ${numberFormatter.format(p.students)}<br>Scholarships: ${numberFormatter.format(p.scholarships)}<br>Avg Progress: ${(p.avg_progress*100).toFixed(0)}%`);
+        marker.addTo(layer);
+        bounds.push([p.lat, p.lng]);
+      });
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [40, 40] });
+        setTimeout(function(){ map.invalidateSize(); }, 0);
+      }
+    }
+
+    function updateKpis(summary){
+      document.getElementById('kpi-schools').textContent = numberFormatter.format(summary.schools||0);
+      document.getElementById('kpi-students').textContent = numberFormatter.format(summary.students||0);
+      document.getElementById('kpi-scholarships').textContent = numberFormatter.format(summary.scholarships||0);
+      document.getElementById('kpi-progress').textContent = `${(summary.avg_progress_pct||0).toFixed? summary.avg_progress_pct.toFixed(2): summary.avg_progress_pct}%`;
+    }
+
+    async function refresh(){
+      const params = new URLSearchParams(new FormData(document.getElementById('filters-form-state')));
+      // lock state
+      params.set('state', '{{ state }}');
+      const resp = await fetch(`/api/data/?${params.toString()}`);
+      const payload = await resp.json();
+      updateKpis(payload.summary);
+      renderMap(payload.map||[]);
+      const tbody = document.querySelector('tbody');
+      if (tbody){
+        tbody.innerHTML = (payload.initiatives||[]).map(i=>`
+          <tr>
+            <td>${i.name}</td>
+            <td>${i.scheme}</td>
+            <td>${i.category}</td>
+            <td>${i.year}</td>
+            <td><span class=\"status status--${String(i.status||'').toLowerCase().replace(/\s+/g,'-')}\">${i.status}</span></td>
+          </tr>`).join('') || '<tr><td colspan="5" class="empty">No data.</td></tr>';
+      }
+    }
+
+    if (data && data.map){ renderMap(data.map); }
+    document.getElementById('filters-form-state').addEventListener('change', refresh);
+  });
+</script>
+{% endblock %}

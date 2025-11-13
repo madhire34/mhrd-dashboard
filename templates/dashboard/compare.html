@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2>Compare</h2>
+
+  <section class="filters mt-3">
+    <form id="compare-form" class="filters__form">
+      <div class="filters__group">
+        <label for="cmp-year">Year</label>
+        <select id="cmp-year" name="year">
+          <option value="">All</option>
+          {% for y in filters.years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filters__group">
+        <label for="cmp-left">Left State</label>
+        <select id="cmp-left" name="left">
+          {% for s in filters.states %}
+            <option value="{{ s }}" {% if forloop.first %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filters__group">
+        <label for="cmp-right">Right State</label>
+        <select id="cmp-right" name="right">
+          {% for s in filters.states %}
+            <option value="{{ s }}" {% if forloop.first %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filters__group">
+        <label for="cmp-scheme">Scheme (optional)</label>
+        <select id="cmp-scheme" name="scheme">
+          <option value="">All</option>
+          {% for s in filters.schemes %}
+            <option value="{{ s }}">{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filters__group">
+        <label for="cmp-metric">Metric</label>
+        <select id="cmp-metric" name="metric">
+          <option value="students" selected>Students</option>
+          <option value="schools">Schools</option>
+          <option value="scholarships">Scholarships</option>
+          <option value="avg_progress_pct">Avg Progress %</option>
+        </select>
+      </div>
+    </form>
+  </section>
+
+  <div class="row g-3 mt-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 id="left-title">Left</h5>
+          <ul class="mb-0">
+            <li>Students: <strong id="left-students">-</strong></li>
+            <li>Schools: <strong id="left-schools">-</strong></li>
+            <li>Scholarships: <strong id="left-scholarships">-</strong></li>
+            <li>Avg Progress: <strong id="left-progress">-</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 id="right-title">Right</h5>
+          <ul class="mb-0">
+            <li>Students: <strong id="right-students">-</strong></li>
+            <li>Schools: <strong id="right-schools">-</strong></li>
+            <li>Scholarships: <strong id="right-scholarships">-</strong></li>
+            <li>Avg Progress: <strong id="right-progress">-</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5>Comparison</h5>
+      <canvas id="cmp-chart" style="height:320px"></canvas>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5>Time Series (Yearly)</h5>
+      <canvas id="cmp-line" style="height:320px"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const fmt = new Intl.NumberFormat('en-IN');
+    const ctx = document.getElementById('cmp-chart').getContext('2d');
+    const chart = new Chart(ctx, { type: 'bar', data: { labels: ['Left','Right'], datasets: [{ label: 'Metric', data: [0,0], backgroundColor: ['#3b82f6','#22c55e'], borderRadius: 12 }] }, options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } } });
+    const lctx = document.getElementById('cmp-line').getContext('2d');
+    const line = new Chart(lctx, { type: 'line', data: { labels: [], datasets: [ { label: 'Left', data: [], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.15)', fill:true, tension:0.3 }, { label: 'Right', data: [], borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.15)', fill:true, tension:0.3 } ] }, options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true }}}});
+
+    async function fetchKpis(name, scheme, year){
+      const p = new URLSearchParams();
+      if (year) p.set('year', year);
+      if (scheme) p.set('scheme', scheme);
+      p.set('state', name);
+      const res = await fetch(`/api/v1/kpis?${p.toString()}`);
+      return res.json();
+    }
+
+    function updatePanel(prefix, cards){
+      document.getElementById(`${prefix}-students`).textContent = fmt.format(cards.students||0);
+      document.getElementById(`${prefix}-schools`).textContent = fmt.format(cards.schools||0);
+      document.getElementById(`${prefix}-scholarships`).textContent = fmt.format(cards.scholarships||0);
+      document.getElementById(`${prefix}-progress`).textContent = `${(cards.avg_progress_pct||0).toFixed? cards.avg_progress_pct.toFixed(2): cards.avg_progress_pct}%`;
+    }
+
+    async function refresh(){
+      const year = document.getElementById('cmp-year').value;
+      const left = document.getElementById('cmp-left').value;
+      const right = document.getElementById('cmp-right').value;
+      const scheme = document.getElementById('cmp-scheme').value;
+      const metric = document.getElementById('cmp-metric').value;
+      document.getElementById('left-title').textContent = left;
+      document.getElementById('right-title').textContent = right;
+      const [l, r] = await Promise.all([
+        fetchKpis(left, scheme, year),
+        fetchKpis(right, scheme, year),
+      ]);
+      updatePanel('left', l.cards||{});
+      updatePanel('right', r.cards||{});
+      const leftVal = metric === 'schools' ? l.cards.schools : metric === 'scholarships' ? l.cards.scholarships : metric === 'avg_progress_pct' ? l.cards.avg_progress_pct : l.cards.students;
+      const rightVal = metric === 'schools' ? r.cards.schools : metric === 'scholarships' ? r.cards.scholarships : metric === 'avg_progress_pct' ? r.cards.avg_progress_pct : r.cards.students;
+      chart.data.datasets[0].label = metric;
+      chart.data.datasets[0].data = [leftVal||0, rightVal||0];
+      chart.update();
+
+      // time series
+      const qp = new URLSearchParams({ left, right, metric });
+      if (scheme) qp.set('scheme', scheme);
+      const ts = await fetch(`/api/v1/compare/trends?${qp.toString()}`).then(r=>r.json());
+      line.data.labels = ts.years || [];
+      line.data.datasets[0].data = (ts.left && ts.left.values) || [];
+      line.data.datasets[1].data = (ts.right && ts.right.values) || [];
+      line.data.datasets[0].label = ts.left && ts.left.label || 'Left';
+      line.data.datasets[1].label = ts.right && ts.right.label || 'Right';
+      line.update();
+    }
+
+    document.getElementById('compare-form').addEventListener('change', refresh);
+    refresh();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"state":"Karnataka"},"geometry":{"type":"Polygon","coordinates":[[[74.5,14.5],[76.5,14.5],[76.5,16.5],[74.5,16.5],[74.5,14.5]]]}},
+    {"type":"Feature","properties":{"state":"Tamil Nadu"},"geometry":{"type":"Polygon","coordinates":[[[77.5,10.0],[79.5,10.0],[79.5,12.0],[77.5,12.0],[77.5,10.0]]]}},
+    {"type":"Feature","properties":{"state":"Maharashtra"},"geometry":{"type":"Polygon","coordinates":[[[73.0,18.5],[76.0,18.5],[76.0,21.0],[73.0,21.0],[73.0,18.5]]]}},
+    {"type":"Feature","properties":{"state":"Delhi"},"geometry":{"type":"Polygon","coordinates":[[[76.9,28.4],[77.3,28.4],[77.3,28.9],[76.9,28.9],[76.9,28.4]]]}},
+    {"type":"Feature","properties":{"state":"Uttar Pradesh"},"geometry":{"type":"Polygon","coordinates":[[[79.5,25.8],[82.5,25.8],[82.5,27.8],[79.5,27.8],[79.5,25.8]]]}},
+    {"type":"Feature","properties":{"state":"West Bengal"},"geometry":{"type":"Polygon","coordinates":[[[86.5,22.4],[88.5,22.4],[88.5,24.4],[86.5,24.4],[86.5,22.4]]]}}
+  ]
+}

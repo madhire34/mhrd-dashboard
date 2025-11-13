@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">MHRD Schemes</h2>
+      <p class="text-muted mb-0">Explore schemes and drill into their impact across states.</p>
+    </div>
+    <div class="input-group" style="max-width:360px;">
+      <span class="input-group-text"><i class="fas fa-search"></i></span>
+      <input type="text" id="scheme-search" class="form-control" placeholder="Search schemes..."/>
+    </div>
+  </div>
+
+  <div class="row g-3" id="schemes-grid">
+    {% for s in schemes %}
+      <div class="col-12 col-sm-6 col-lg-4 scheme-card" data-name="{{ s.name|lower }}">
+        <a href="/schemes/{{ s.slug }}" class="text-decoration-none">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-start justify-content-between">
+                <div>
+                  <h5 class="mb-1"><i class="scheme-card-icon fas fa-layer-group me-2"></i>{{ s.name }}</h5>
+                  <small class="text-muted">{{ s.states_count|default:0 }} states • {{ s.initiatives_count|default:0 }} initiatives</small>
+                </div>
+                <div class="badge bg-primary">View</div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="text-muted mt-2"><small id="scheme-count"></small></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var input = document.getElementById('scheme-search');
+    var cards = Array.from(document.querySelectorAll('.scheme-card'));
+    function update(){
+      var q = (input.value||'').trim().toLowerCase();
+      var shown = 0;
+      cards.forEach(function(el){
+        var name = el.getAttribute('data-name')||'';
+        var visible = !q || name.indexOf(q) !== -1;
+        el.style.display = visible ? '' : 'none';
+        if (visible) shown++;
+      });
+      var count = document.getElementById('scheme-count');
+      if (count) count.textContent = shown + ' of ' + cards.length + ' schemes';
+    }
+    if (input) input.addEventListener('input', update);
+    update();
+
+    // Assign icons by scheme keywords
+    var iconMap = [
+      { key: 'samagra', icon: 'fa-graduation-cap' },
+      { key: 'evidya', icon: 'fa-tv' },
+      { key: 'mid-day', icon: 'fa-utensils' },
+      { key: 'swayam', icon: 'fa-chalkboard-teacher' },
+      { key: 'digital', icon: 'fa-network-wired' },
+      { key: 'scholar', icon: 'fa-certificate' }
+    ];
+    document.querySelectorAll('.scheme-card').forEach(function(card){
+      var name = (card.getAttribute('data-name')||'');
+      var iconEl = card.querySelector('.scheme-card-icon');
+      if (!iconEl) return;
+      for (var i=0; i<iconMap.length; i++){
+        if (name.indexOf(iconMap[i].key) !== -1){
+          iconEl.className = 'scheme-card-icon fas ' + iconMap[i].icon + ' me-2';
+          break;
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

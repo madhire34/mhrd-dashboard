@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block content %}
+<div class="dashboard">
+    <aside class="sidebar">
+        <div class="sidebar__brand">
+            <h1>MHRD<br>Dashboard</h1>
+        </div>
+        <nav class="sidebar__nav">
+            <a href="#" class="sidebar__link sidebar__link--active">Overview</a>
+            <a href="#enrollment-section" class="sidebar__link">Enrollment</a>
+            <a href="#scholarship-section" class="sidebar__link">Scholarships</a>
+            <a href="#infrastructure-section" class="sidebar__link">Infrastructure</a>
+            <a href="#digital-section" class="sidebar__link">Digital Initiatives</a>
+        </nav>
+    </aside>
+    <main class="content">
+        <header class="content__header">
+            <div>
+                <h2>Overview</h2>
+                <p>Track initiatives, enrollment, and scholarship impact under the Ministry of Education (MHRD).</p>
+            </div>
+            <div class="actions">
+                <a id="download-report" class="button button--primary" href="{% url 'dashboard:download-report' %}">Download Report</a>
+            </div>
+        </header>
+
+        <section class="filters">
+            <form id="filters-form" class="filters__form">
+                <div class="filters__group">
+                    <label for="filter-year">Year</label>
+                    <select id="filter-year" name="year">
+                        <option value="">All</option>
+                        {% for choice in filters.years %}
+                            <option value="{{ choice }}" {% if payload.filters.year|default:'' == choice|stringformat:"s" %}selected{% endif %}>{{ choice }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filters__group">
+                    <label for="filter-state">State</label>
+                    <select id="filter-state" name="state">
+                        <option value="">All</option>
+                        {% for choice in filters.states %}
+                            <option value="{{ choice }}" {% if payload.filters.state == choice %}selected{% endif %}>{{ choice }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filters__group">
+                    <label for="filter-scheme">Scheme</label>
+                    <select id="filter-scheme" name="scheme">
+                        <option value="">All</option>
+                        {% for choice in filters.schemes %}
+                            <option value="{{ choice }}" {% if payload.filters.scheme == choice %}selected{% endif %}>{{ choice }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filters__group">
+                    <label for="filter-category">Category</label>
+                    <select id="filter-category" name="category">
+                        <option value="">All</option>
+                        {% for choice in filters.categories %}
+                            <option value="{{ choice }}" {% if payload.filters.category == choice %}selected{% endif %}>{{ choice }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </section>
+
+        <section class="kpi-grid" id="kpi-cards">
+            <article class="card">
+                <p class="card__label">Total Schools</p>
+                <h3 class="card__value" data-kpi="schools">{{ payload.summary.schools|intcomma }}</h3>
+            </article>
+            <article class="card">
+                <p class="card__label">Total Students</p>
+                <h3 class="card__value" data-kpi="students">{{ payload.summary.students|intcomma }}</h3>
+            </article>
+            <article class="card">
+                <p class="card__label">Scholarship Beneficiaries</p>
+                <h3 class="card__value" data-kpi="scholarships">{{ payload.summary.scholarships|intcomma }}</h3>
+            </article>
+            <article class="card">
+                <p class="card__label">Average Progress</p>
+                <h3 class="card__value" data-kpi="progress">{{ payload.summary.avg_progress_pct|floatformat:2 }}%</h3>
+            </article>
+        </section>
+
+        <section class="visual-grid">
+            <article class="card card--chart" id="enrollment-section">
+                <div class="card__heading">
+                    <h4>Monthly Enrollment Trends</h4>
+                    <div class="legend">
+                        <span class="legend__item legend__item--primary">Primary</span>
+                        <span class="legend__item legend__item--secondary">Secondary</span>
+                    </div>
+                </div>
+                <canvas id="enrollment-chart"></canvas>
+            </article>
+
+            <article class="card card--chart" id="scholarship-section">
+                <div class="card__heading">
+                    <h4>Scholarship Distribution by State</h4>
+                </div>
+                <canvas id="scholarship-chart"></canvas>
+            </article>
+
+            <article class="card card--map" id="infrastructure-section">
+                <div class="card__heading">
+                    <h4>State Impact Map</h4>
+                    <div class="map-toolbar">
+                        <label for="map-metric" class="me-2">Metric</label>
+                        <select id="map-metric">
+                            <option value="students" selected>Students</option>
+                            <option value="schools">Schools</option>
+                            <option value="scholarships">Scholarships</option>
+                            <option value="progress">Avg Progress %</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="state-map"></div>
+            </article>
+
+            <article class="card card--table" id="digital-section">
+                <div class="card__heading">
+                    <h4>Initiatives Overview</h4>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Initiative</th>
+                            <th>State</th>
+                            <th>Scheme</th>
+                            <th>Category</th>
+                            <th>Year</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                        </tr>
+                        </thead>
+                        <tbody id="initiatives-body">
+                        {% for item in payload.initiatives %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.state }}</td>
+                                <td>{{ item.scheme }}</td>
+                                <td>{{ item.category }}</td>
+                                <td>{{ item.year }}</td>
+                                <td><span class="status status--{{ item.status|slugify }}">{{ item.status }}</span></td>
+                                <td>{{ item.progress_pct|floatformat:2 }}%</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="7" class="empty">No initiatives match the current filters.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+</div>
+
+{{ payload|json_script:"initial-dashboard-data" }}
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{% static 'dashboard/js/dashboard.js' %}?v=2"></script>
+{% endblock %}
+
