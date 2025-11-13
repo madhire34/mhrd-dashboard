@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 {% load static %}
 <html lang="en">
 <head>
@@ -14,8 +14,10 @@
     
     <link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
     
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
-    <link rel="alternate icon" type="image/png" href="{% static 'img/favicon.png' %}">
+    <!-- Fallback favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     
     <!-- Use an explicit Plotly version to avoid legacy warning -->
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
