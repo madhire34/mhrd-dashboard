@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: mhrd-dashboard
+    env: python
+    buildCommand: |-
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn mhrd_dashboard.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.9.0"
+      - key: DJANGO_SETTINGS_MODULE
+        value: "mhrd_dashboard.settings"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: WEB_CONCURRENCY
+        value: 4
+    plan: free
+    region: singapore
+    numInstances: 1
+    healthCheckPath: /
