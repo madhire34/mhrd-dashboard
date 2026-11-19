@@ -23,17 +23,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure--8&gpp#jh7h&zx5s#xlw^csc!obm2doy7$!s+&r5@aijfw@i$e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
 import os
 
 # Allow all hosts in development, specific hosts in production
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 
+# Debug is on by default for local development, off on Render
+DEBUG = os.environ.get(
+    'DEBUG', 'False' if RENDER_EXTERNAL_HOSTNAME else 'True'
+).lower() in ('1', 'true', 'yes')
+
 if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, 'mhrd-dashboard.onrender.com']
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, 'mhrd-dashboard.onrender.com', 'localhost', '127.0.0.1']
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 
 
 # Application definition
@@ -92,28 +95,24 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-import os
 import dj_database_url
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- DATABASE CONFIGURATION ---
-import dj_database_url
-import os
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Database configuration
+# Use Postgres when DATABASE_URL is provided (Render), otherwise local SQLite
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
+        default=DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
         conn_health_checks=True,
-        ssl_require=True
+        ssl_require=bool(DATABASE_URL),
     )
 }
 
-    # Running locally → use SQLite
- 
 # --- END DATABASE CONFIGURATION ---
 
 
