@@ -1,1 +1,1 @@
-web: gunicorn mhrd_dashboard.wsgi:application
+web: gunicorn mhrd_dashboard.wsgi:application --bind 0.0.0.0:$PORT
