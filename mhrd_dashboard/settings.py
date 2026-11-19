@@ -34,7 +34,7 @@ DEBUG = os.environ.get(
 ).lower() in ('1', 'true', 'yes')
 
 if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, 'mhrd-dashboard.onrender.com', 'localhost', '127.0.0.1']
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, 'mhrd-dashboard.onrender.com', '.onrender.com', 'localhost', '127.0.0.1']
 else:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 

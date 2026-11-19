@@ -17,7 +17,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: WEB_CONCURRENCY
-        value: 4
+        value: 2
     plan: free
     region: singapore
     numInstances: 1
