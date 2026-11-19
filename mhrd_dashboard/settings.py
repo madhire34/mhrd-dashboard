@@ -117,15 +117,31 @@ REST_FRAMEWORK = {
 # --- DATABASE CONFIGURATION ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Use Postgres when DATABASE_URL is provided (Render), otherwise local SQLite
-DATABASES = {
-    'default': dj_database_url.config(
-        default=DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+# The Postgres previously attached to the Render service no longer exists, so
+# always use the local SQLite file on Render unless USE_POSTGRES is explicitly
+# enabled (e.g. after connecting a working database).
+if RENDER_EXTERNAL_HOSTNAME and os.environ.get('USE_POSTGRES', '').lower() not in ('1', 'true', 'yes'):
+    DATABASE_URL = None
+
+# Use Postgres only when a usable DATABASE_URL is configured, otherwise SQLite.
+# parse() is used instead of config() because config() would re-read the
+# DATABASE_URL environment variable and ignore the fallback above.
+if DATABASE_URL:
+    _DB = dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600,
         conn_health_checks=True,
-        ssl_require=bool(DATABASE_URL),
+        ssl_require=True,
     )
-}
+else:
+    _DB = dj_database_url.parse(
+        f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=False,
+    )
+
+DATABASES = {'default': _DB}
 
 # --- END DATABASE CONFIGURATION ---
 
