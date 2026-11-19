@@ -10,20 +10,23 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--8&gpp#jh7h&zx5s#xlw^csc!obm2doy7$!s+&r5@aijfw@i$e'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-import os
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure--8&gpp#jh7h&zx5s#xlw^csc!obm2doy7$!s+&r5@aijfw@i$e',
+)
 
 # Allow all hosts in development, specific hosts in production
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
@@ -37,6 +40,22 @@ if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, 'mhrd-dashboard.onrender.com', '.onrender.com', 'localhost', '127.0.0.1']
 else:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+
+# Render terminates TLS and forwards the original scheme in this header.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Required for any POST (admin login, API) served over HTTPS behind Render's proxy.
+CSRF_TRUSTED_ORIGINS = [
+    'https://mhrd-dashboard.onrender.com',
+    'https://*.onrender.com',
+]
+_extra_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+if _extra_origins:
+    CSRF_TRUSTED_ORIGINS += [o.strip() for o in _extra_origins.split(',') if o.strip()]
+
+if RENDER_EXTERNAL_HOSTNAME:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -93,12 +112,7 @@ REST_FRAMEWORK = {
 
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-import dj_database_url
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # --- DATABASE CONFIGURATION ---
 DATABASE_URL = os.environ.get('DATABASE_URL')

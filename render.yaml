@@ -9,7 +9,7 @@ services:
     startCommand: gunicorn mhrd_dashboard.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
-        value: "3.9.0"
+        value: "3.12.13"
       - key: DJANGO_SETTINGS_MODULE
         value: "mhrd_dashboard.settings"
       - key: SECRET_KEY
@@ -21,4 +21,4 @@ services:
     plan: free
     region: singapore
     numInstances: 1
-    healthCheckPath: /
+    healthCheckPath: /api/v1/health
