@@ -92,10 +92,17 @@ document.addEventListener("DOMContentLoaded", () => {
         center: [21.1458, 79.0882],
         zoom: 5,
         scrollWheelZoom: false,
-        attributionControl: false
+        attributionControl: true
     });
+    map.attributionControl.setPrefix(false);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
+    // OpenStreetMap's own tile servers reject embedded apps (HTTP 403) and
+    // CARTO's basemap now requires an API key, so use Esri's World Light Gray
+    // Canvas, which is free to use with attribution and needs no key.
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+    }).addTo(map);
     const markersLayer = L.layerGroup().addTo(map);
     let geoLayer = null;
 
